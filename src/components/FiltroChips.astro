@@ -1,0 +1,77 @@
+---
+// FiltroChips.astro — sin <style>, usa global.css
+import { IMPUESTOS_DISPONIBLES } from '../utils/filtrarPorPerfil.js';
+---
+
+<div class="card filtro">
+  <div class="filtro__header">
+    <span class="paso-label">Paso 3</span>
+    <h2 class="filtro__titulo">¿Qué impuestos declara?</h2>
+    <p class="filtro__sub">Selecciona los que aplican — puedes cambiarlos cuando quieras</p>
+  </div>
+
+  <div class="filtro__chips" role="group" aria-label="Selección de impuestos">
+    {IMPUESTOS_DISPONIBLES.map((imp) => (
+      <button class="chip-impuesto" data-id={imp.id} data-tipo={imp.tipo} type="button" aria-pressed="false">
+        <span class="chip-check" aria-hidden="true"></span>
+        {imp.label}
+        <span class={`chip-tipo chip-tipo--${imp.tipo}`}>{imp.tipo}</span>
+      </button>
+    ))}
+  </div>
+
+  <div class="filtro__footer">
+    <span id="filtro-conteo" class="filtro__conteo">0 seleccionados</span>
+    <button id="btn-ver-resultados" class="filtro__btn-ver" type="button" disabled>
+      Ver mis vencimientos →
+    </button>
+  </div>
+</div>
+
+<script>
+  const chips  = document.querySelectorAll<HTMLButtonElement>('.chip-impuesto');
+  const conteo = document.getElementById('filtro-conteo')!;
+  const btnVer = document.getElementById('btn-ver-resultados') as HTMLButtonElement;
+
+  function getSeleccionados(): string[] {
+    return Array.from(chips)
+      .filter(c => c.getAttribute('aria-pressed') === 'true')
+      .map(c => c.dataset.id!);
+  }
+
+  function actualizarConteo() {
+    const n = getSeleccionados().length;
+    conteo.textContent = n === 0 ? '0 seleccionados'
+      : `${n} impuesto${n > 1 ? 's' : ''} seleccionado${n > 1 ? 's' : ''}`;
+    btnVer.disabled = n === 0;
+  }
+
+  chips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      const activo = chip.getAttribute('aria-pressed') === 'true';
+      chip.setAttribute('aria-pressed', String(!activo));
+      chip.classList.toggle('chip-impuesto--activo', !activo);
+      actualizarConteo();
+    });
+  });
+
+  document.addEventListener('perfil:seleccionado', (e: Event) => {
+    const { perfil } = (e as CustomEvent).detail;
+    import('/src/utils/filtrarPorPerfil.js').then(({ getImpuestosSugeridos }) => {
+      const sugeridos = getImpuestosSugeridos(perfil);
+      chips.forEach(chip => {
+        const activo = sugeridos.includes(chip.dataset.id!);
+        chip.setAttribute('aria-pressed', String(activo));
+        chip.classList.toggle('chip-impuesto--activo', activo);
+      });
+      actualizarConteo();
+    });
+  });
+
+  btnVer.addEventListener('click', () => {
+    document.dispatchEvent(new CustomEvent('impuestos:seleccionados', {
+      detail: { seleccionados: getSeleccionados() },
+      bubbles: true,
+    }));
+  });
+</script>

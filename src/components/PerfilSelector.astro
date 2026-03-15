@@ -1,0 +1,36 @@
+---
+// PerfilSelector.astro — sin <style>, usa global.css
+import { PERFILES } from '../utils/filtrarPorPerfil.js';
+---
+
+<div class="card perfil">
+  <div class="perfil__header">
+    <span class="paso-label">Paso 2</span>
+    <h2 class="perfil__titulo">¿Qué tipo de contribuyente eres?</h2>
+    <p class="perfil__sub">Selecciona el que mejor describe a tu empresa o cliente</p>
+  </div>
+  <div class="perfil__grid">
+    {PERFILES.map((p) => (
+      <button class="perfil__card" data-id={p.id} type="button" aria-pressed="false">
+        <span class="perfil__icono" aria-hidden="true">{p.icono}</span>
+        <span class="perfil__label">{p.label}</span>
+        <span class="perfil__desc">{p.descripcion}</span>
+      </button>
+    ))}
+  </div>
+</div>
+
+<script>
+  const cards = document.querySelectorAll<HTMLButtonElement>('.perfil__card');
+  cards.forEach((card) => {
+    card.addEventListener('click', () => {
+      cards.forEach((c) => { c.classList.remove('perfil__card--activo'); c.setAttribute('aria-pressed', 'false'); });
+      card.classList.add('perfil__card--activo');
+      card.setAttribute('aria-pressed', 'true');
+      document.dispatchEvent(new CustomEvent('perfil:seleccionado', {
+        detail: { perfil: card.dataset.id! },
+        bubbles: true,
+      }));
+    });
+  });
+</script>

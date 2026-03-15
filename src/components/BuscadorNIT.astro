@@ -1,0 +1,54 @@
+---
+// BuscadorNIT.astro — sin <style>, usa global.css
+---
+<div class="card buscador">
+  <h1 class="buscador__titulo">Consulta tus vencimientos tributarios</h1>
+  <p class="buscador__sub">
+    Ingresa el NIT de la empresa <strong>sin el dígito de verificación</strong>
+  </p>
+  <div class="buscador__row">
+    <div class="buscador__input-wrap">
+      <span class="buscador__icon" aria-hidden="true">🔍</span>
+      <input
+        id="nit-input"
+        type="text"
+        inputmode="numeric"
+        maxlength="15"
+        placeholder="Ej: 901648262"
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="NIT sin dígito de verificación"
+      />
+    </div>
+    <button id="btn-buscar" type="button">Consultar</button>
+  </div>
+  <p id="nit-error" class="buscador__error" role="alert" aria-live="polite"></p>
+</div>
+
+<script>
+  const input  = document.getElementById('nit-input')  as HTMLInputElement;
+  const btn    = document.getElementById('btn-buscar') as HTMLButtonElement;
+  const errMsg = document.getElementById('nit-error')  as HTMLParagraphElement;
+
+  function validar(nit: string): string | null {
+    const limpio = nit.replace(/\D/g, '');
+    if (!limpio || limpio.length < 5) return 'Ingresa un NIT válido (mínimo 5 dígitos).';
+    if (limpio.length > 15)           return 'El NIT no puede tener más de 15 dígitos.';
+    return null;
+  }
+
+  function buscar() {
+    const error = validar(input.value.trim());
+    errMsg.textContent = error ?? '';
+    if (!error) {
+      document.dispatchEvent(new CustomEvent('nit:ingresado', {
+        detail: { nit: input.value.trim().replace(/\D/g, '') },
+        bubbles: true,
+      }));
+    }
+  }
+
+  btn.addEventListener('click', buscar);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') buscar(); });
+  input.addEventListener('input', () => { errMsg.textContent = ''; });
+</script>

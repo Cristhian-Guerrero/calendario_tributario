@@ -1,0 +1,166 @@
+---
+// ============================================================
+// ProximoVence.astro — v2
+// Bug fix: leer proximoVencimiento del evento dashboard:actualizado
+// ============================================================
+---
+
+<div id="proximo-vence" class="proximo" aria-live="polite"></div>
+
+<script>
+  const el = document.getElementById('proximo-vence')!;
+
+  document.addEventListener('dashboard:actualizado', (e: Event) => {
+    const data = (e as CustomEvent).detail;
+    // El filtrarPorPerfil retorna proximoVencimiento en el objeto raíz
+    const proximo = data.proximoVencimiento ?? null;
+    el.innerHTML = render(proximo);
+  });
+
+  function render(p: any): string {
+    if (!p) {
+      return `
+        <div class="proximo__vacio">
+          <span class="proximo__vacio-check">✓</span>
+          <div>
+            <strong>Sin vencimientos próximos</strong>
+            <span class="proximo__vacio-sub">No hay obligaciones pendientes para los impuestos seleccionados.</span>
+          </div>
+        </div>`;
+    }
+
+    const urgente = p.dias !== null && p.dias <= 7;
+    const hoy     = p.dias === 0;
+
+    return `
+      <div class="proximo__inner ${urgente ? 'proximo__inner--urgente' : ''}">
+        <div class="proximo__left">
+          <span class="proximo__etiqueta">Próximo vencimiento</span>
+          <span class="proximo__impuesto">${p.impuesto}</span>
+          <span class="proximo__detalle">${p.detalle ?? p.periodo ?? ''}</span>
+          <span class="proximo__fecha">${p.fmt}</span>
+        </div>
+        <div class="proximo__dias proximo__dias--${urgente ? 'rojo' : p.dias <= 30 ? 'amarillo' : 'verde'}">
+          <span class="proximo__num">${hoy ? '¡HOY!' : p.dias}</span>
+          ${!hoy ? '<span class="proximo__txt">días</span>' : ''}
+        </div>
+      </div>`;
+  }
+</script>
+
+<style>
+  .proximo {
+    background: var(--blanco);
+    border: 1px solid var(--gris-borde);
+    border-radius: var(--radio);
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--sombra);
+    margin-bottom: 1.25rem;
+    min-height: 64px;
+  }
+
+  .proximo__inner {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .proximo__inner--urgente {
+    background: #fff1f2;
+    border-left: 4px solid var(--rojo);
+    margin: -1.25rem -1.5rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--radio);
+  }
+
+  .proximo__left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: .18rem;
+  }
+
+  .proximo__etiqueta {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--gris-texto);
+  }
+
+  .proximo__impuesto {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--texto);
+  }
+
+  .proximo__detalle {
+    font-size: .8rem;
+    color: var(--gris-texto);
+  }
+
+  .proximo__fecha {
+    font-size: .88rem;
+    font-weight: 600;
+    color: var(--texto);
+  }
+
+  .proximo__dias {
+    flex-shrink: 0;
+    width: 72px;
+    height: 72px;
+    border-radius: var(--radio-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .05rem;
+  }
+
+  .proximo__dias--rojo    { background: var(--rojo);    color: white; }
+  .proximo__dias--amarillo { background: var(--amarillo); color: white; }
+  .proximo__dias--verde   { background: var(--verde);   color: white; }
+
+  .proximo__num {
+    font-size: 1.55rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .proximo__txt {
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    opacity: .9;
+  }
+
+  .proximo__vacio {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    font-size: .9rem;
+    color: var(--gris-texto);
+  }
+
+  .proximo__vacio-check {
+    font-size: 1.1rem;
+    color: var(--verde);
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: .1rem;
+  }
+
+  .proximo__vacio-sub {
+    display: block;
+    font-size: .82rem;
+    margin-top: .1rem;
+    color: var(--gris-texto);
+  }
+
+  @media (max-width: 520px) {
+    .proximo__inner { flex-wrap: wrap; }
+    .proximo__dias  { width: 100%; height: 44px; flex-direction: row; gap: .4rem; }
+    .proximo__num   { font-size: 1.2rem; }
+  }
+</style>

@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "titulo": "Sobretasa Instituciones Financieras",
+    "regla": "1_ultimo_digito",
+    "descripcion": "Dos cuotas: primera con presentación en abril, segunda en junio.",
+    "ano": 2026
+  },
+  "cuotas": {
+    "cuota_1": {
+      "descripcion": "Primera cuota y presentación (abril)",
+      "fechas": {
+        "1": "2026-04-13",
+        "2": "2026-04-14",
+        "3": "2026-04-15",
+        "4": "2026-04-16",
+        "5": "2026-04-17",
+        "6": "2026-04-20",
+        "7": "2026-04-21",
+        "8": "2026-04-22",
+        "9": "2026-04-23",
+        "0": "2026-04-24"
+      }
+    },
+    "cuota_2": {
+      "descripcion": "Segunda cuota (junio)",
+      "fechas": {
+        "1": "2026-06-10",
+        "2": "2026-06-11",
+        "3": "2026-06-12",
+        "4": "2026-06-16",
+        "5": "2026-06-17",
+        "6": "2026-06-18",
+        "7": "2026-06-19",
+        "8": "2026-06-22",
+        "9": "2026-06-23",
+        "0": "2026-06-24"
+      }
+    }
+  }
+}

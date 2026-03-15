@@ -1,0 +1,66 @@
+---
+// ============================================================
+// BadgeEstado.astro
+// Responsabilidad: mostrar el estado de urgencia de un vencimiento
+// Props:
+//   dias: number | null — días restantes (negativo = vencido)
+// ============================================================
+export interface Props {
+  dias: number | null;
+}
+
+const { dias } = Astro.props;
+
+type Estado = 'vencido' | 'hoy' | 'urgente' | 'proximo' | 'futuro' | 'sin-fecha';
+
+function getEstado(dias: number | null): Estado {
+  if (dias === null)  return 'sin-fecha';
+  if (dias < 0)       return 'vencido';
+  if (dias === 0)     return 'hoy';
+  if (dias <= 7)      return 'urgente';
+  if (dias <= 30)     return 'proximo';
+  return 'futuro';
+}
+
+const estado = getEstado(dias);
+
+const config: Record<Estado, { label: string; clase: string }> = {
+  'vencido':   { label: 'Vencido',          clase: 'badge--vencido'   },
+  'hoy':       { label: '¡Hoy!',            clase: 'badge--hoy'       },
+  'urgente':   { label: `${dias}d`,         clase: 'badge--urgente'   },
+  'proximo':   { label: `${dias}d`,         clase: 'badge--proximo'   },
+  'futuro':    { label: `${dias}d`,         clase: 'badge--futuro'    },
+  'sin-fecha': { label: 'Sin fecha',        clase: 'badge--sin-fecha' },
+};
+
+const { label, clase } = config[estado];
+---
+
+<span class={`badge ${clase}`}>{label}</span>
+
+<style>
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: .2rem .65rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    white-space: nowrap;
+    min-width: 48px;
+  }
+
+  .badge--vencido   { background: #f1f5f9; color: #64748b; }
+  .badge--hoy       { background: #dc2626; color: #ffffff; animation: pulse 1s infinite; }
+  .badge--urgente   { background: #fee2e2; color: #b91c1c; }
+  .badge--proximo   { background: #fef3c7; color: #92400e; }
+  .badge--futuro    { background: #dcfce7; color: #166534; }
+  .badge--sin-fecha { background: #f1f5f9; color: #94a3b8; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: .75; }
+  }
+</style>

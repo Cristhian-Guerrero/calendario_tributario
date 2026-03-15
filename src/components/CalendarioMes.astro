@@ -1,0 +1,286 @@
+---
+// CalendarioMes.astro — v2
+// Novedades:
+//   - Escucha 'timeline:mes-clic' y navega automáticamente al mes
+//   - Muestra ícono de tipo en el panel de detalle del día
+//   - Animación suave al cambiar de mes
+// ============================================================
+---
+
+<div id="calendario-wrap" class="calendario-wrap">
+
+  <div class="cal-card">
+    <div class="cal-nav">
+      <button class="cal-nav-btn" id="cal-prev" type="button" aria-label="Mes anterior">◀</button>
+      <span class="cal-mes-label" id="cal-mes-label">—</span>
+      <button class="cal-nav-btn" id="cal-next" type="button" aria-label="Mes siguiente">▶</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-leyenda">
+      <span class="cal-ley-item"><span class="cal-punto cal-punto-hoy"></span>Hoy</span>
+      <span class="cal-ley-item"><span class="cal-punto cal-punto-urgente"></span>Urgente</span>
+      <span class="cal-ley-item"><span class="cal-punto cal-punto-proximo"></span>Próximo</span>
+      <span class="cal-ley-item"><span class="cal-punto cal-punto-futuro"></span>Futuro</span>
+    </div>
+  </div>
+
+  <div class="cal-detalle-card" id="cal-detalle" style="display:none">
+    <div class="cal-detalle-header" id="cal-detalle-header"></div>
+    <div class="cal-detalle-items" id="cal-detalle-items"></div>
+  </div>
+
+  <div class="cal-mes-resumen" id="cal-mes-resumen" style="display:none"></div>
+
+</div>
+
+<script>
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                 'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const DIAS  = ['LU','MA','MI','JU','VI','SA','DO'];
+
+  const TIPO_ICONO: Record<string, string> = {
+    pago:             '💳',
+    declaracion:      '📄',
+    pago_declaracion: '📋',
+    reporte:          '📊',
+  };
+
+  const TIPO_LABEL: Record<string, string> = {
+    pago:             'Solo pago',
+    declaracion:      'Solo declaración',
+    pago_declaracion: 'Pago y declaración',
+    reporte:          'Reporte',
+  };
+
+  let todosLosItems: any[] = [];
+  let mesActual  = new Date().getMonth();
+  let anioActual = new Date().getFullYear();
+  let diaSeleccionado: number | null = null;
+
+  // ── Escuchar datos ────────────────────────────────────────
+  document.addEventListener('dashboard:actualizado', (e: Event) => {
+    const { anuales, periodicos } = (e as CustomEvent).detail;
+    todosLosItems = [...anuales, ...periodicos].filter(i => i.fecha);
+
+    // Ir al mes del próximo vencimiento
+    const proximo = todosLosItems
+      .filter(i => i.dias !== null && i.dias >= 0)
+      .sort((a, b) => a.dias - b.dias)[0];
+
+    if (proximo) {
+      const [y, m] = proximo.fecha.split('-').map(Number);
+      anioActual = y; mesActual = m - 1;
+    }
+
+    renderCalendario();
+    const ph = document.getElementById('cal-placeholder');
+    if (ph) ph.style.display = 'none';
+  });
+
+  // ── Sincronización desde el timeline ──────────────────────
+  document.addEventListener('timeline:mes-clic', (e: Event) => {
+    const { anio, mes } = (e as CustomEvent).detail;
+    if (anio !== anioActual || mes !== mesActual) {
+      anioActual = anio;
+      mesActual  = mes;
+      diaSeleccionado = null;
+      renderCalendario(true); // true = animar
+    }
+  });
+
+  // ── Navegación manual ─────────────────────────────────────
+  document.getElementById('cal-prev')!.addEventListener('click', () => {
+    mesActual--; if (mesActual < 0)  { mesActual = 11; anioActual--; }
+    diaSeleccionado = null; renderCalendario();
+  });
+  document.getElementById('cal-next')!.addEventListener('click', () => {
+    mesActual++; if (mesActual > 11) { mesActual = 0;  anioActual++; }
+    diaSeleccionado = null; renderCalendario();
+  });
+
+  // ── Render del calendario ─────────────────────────────────
+  function renderCalendario(animar = false) {
+    const label = document.getElementById('cal-mes-label')!;
+    label.textContent = `${MESES[mesActual]} ${anioActual}`;
+
+    const grid = document.getElementById('cal-grid')!;
+
+    if (animar) {
+      grid.style.opacity = '0';
+      grid.style.transform = 'translateY(4px)';
+      setTimeout(() => {
+        buildGrid(grid);
+        grid.style.transition = 'opacity .2s ease, transform .2s ease';
+        grid.style.opacity = '1';
+        grid.style.transform = 'translateY(0)';
+      }, 120);
+    } else {
+      grid.style.opacity = '1';
+      grid.style.transform = '';
+      buildGrid(grid);
+    }
+
+    // Resumen
+    const porDia = getVencimientosPorDia();
+    renderResumenMes(porDia);
+
+    // Si hay día seleccionado, actualizar detalle
+    if (diaSeleccionado && porDia[diaSeleccionado]) {
+      renderDetalleDia(diaSeleccionado, porDia[diaSeleccionado]);
+    } else {
+      const det = document.getElementById('cal-detalle')!;
+      det.style.display = 'none';
+    }
+  }
+
+  function getVencimientosPorDia(): Record<number, any[]> {
+    const mapa: Record<number, any[]> = {};
+    todosLosItems.forEach(item => {
+      const [y, m, d] = item.fecha.split('-').map(Number);
+      if (y === anioActual && m - 1 === mesActual) {
+        if (!mapa[d]) mapa[d] = [];
+        mapa[d].push(item);
+      }
+    });
+    return mapa;
+  }
+
+  function buildGrid(grid: HTMLElement) {
+    grid.innerHTML = '';
+
+    // Encabezados
+    DIAS.forEach(d => {
+      const el = document.createElement('div');
+      el.className = 'cal-dia-label';
+      el.textContent = d;
+      grid.appendChild(el);
+    });
+
+    const primerDia   = new Date(anioActual, mesActual, 1);
+    let   inicioGrid  = primerDia.getDay();
+    inicioGrid = inicioGrid === 0 ? 6 : inicioGrid - 1;
+
+    const diasEnMes       = new Date(anioActual, mesActual + 1, 0).getDate();
+    const diasMesAnterior = new Date(anioActual, mesActual, 0).getDate();
+    const hoy             = new Date();
+    const porDia          = getVencimientosPorDia();
+
+    // Días mes anterior
+    for (let i = 0; i < inicioGrid; i++) {
+      const el = document.createElement('div');
+      el.className = 'cal-dia cal-dia-otro';
+      el.textContent = String(diasMesAnterior - inicioGrid + 1 + i);
+      grid.appendChild(el);
+    }
+
+    // Días del mes
+    for (let d = 1; d <= diasEnMes; d++) {
+      const el    = document.createElement('div');
+      const esHoy = d === hoy.getDate() && mesActual === hoy.getMonth() && anioActual === hoy.getFullYear();
+      const venc  = porDia[d] ?? [];
+      const esSel = diaSeleccionado === d;
+
+      el.className = 'cal-dia'
+        + (esHoy           ? ' cal-dia-hoy'      : '')
+        + (venc.length > 0 ? ' cal-dia-con-venc' : '')
+        + (esSel           ? ' cal-dia-sel'       : '');
+
+      el.innerHTML = `<span class="cal-dia-num">${d}</span>`;
+
+      if (venc.length > 0) {
+        const puntos = document.createElement('div');
+        puntos.className = 'cal-puntos';
+        venc.slice(0, 3).forEach(v => {
+          const p = document.createElement('span');
+          p.className = 'cal-punto ' + (
+            v.dias < 0 ? 'cal-punto-vencido' :
+            v.dias <= 7 ? 'cal-punto-urgente' :
+            v.dias <= 30 ? 'cal-punto-proximo' : 'cal-punto-futuro'
+          );
+          puntos.appendChild(p);
+        });
+        el.appendChild(puntos);
+
+        el.addEventListener('click', () => {
+          diaSeleccionado = d;
+          renderCalendario();
+          renderDetalleDia(d, venc);
+        });
+      }
+
+      grid.appendChild(el);
+    }
+
+    // Días mes siguiente
+    const resto = (inicioGrid + diasEnMes) % 7;
+    if (resto > 0) {
+      for (let i = 1; i <= 7 - resto; i++) {
+        const el = document.createElement('div');
+        el.className = 'cal-dia cal-dia-otro';
+        el.textContent = String(i);
+        grid.appendChild(el);
+      }
+    }
+  }
+
+  // ── Detalle del día ───────────────────────────────────────
+  function renderDetalleDia(dia: number, items: any[]) {
+    const card   = document.getElementById('cal-detalle')!;
+    const header = document.getElementById('cal-detalle-header')!;
+    const lista  = document.getElementById('cal-detalle-items')!;
+
+    header.textContent = `${dia} de ${MESES[mesActual]} ${anioActual} — ${items.length} vencimiento${items.length > 1 ? 's' : ''}`;
+
+    lista.innerHTML = items.map(item => {
+      const esAnual = 'detalle' in item;
+      const icono   = TIPO_ICONO[item.tipo] ?? '📋';
+      const label   = TIPO_LABEL[item.tipo] ?? 'Pago y declaración';
+      const badge   = getBadge(item.dias);
+      return `
+        <div class="cal-det-item">
+          <span class="cal-det-tipo" title="${label}">${icono}</span>
+          <div class="cal-det-info">
+            <span class="cal-det-imp">${item.impuesto}</span>
+            <span class="cal-det-sub">${esAnual ? item.detalle : item.periodo} · ${label}</span>
+          </div>
+          ${badge}
+        </div>
+      `;
+    }).join('');
+
+    card.style.display = 'block';
+  }
+
+  // ── Resumen mes ───────────────────────────────────────────
+  function renderResumenMes(porDia: Record<number, any[]>) {
+    const resumen = document.getElementById('cal-mes-resumen')!;
+    const items   = Object.values(porDia).flat();
+    if (items.length === 0) { resumen.style.display = 'none'; return; }
+
+    const urgentes = items.filter(i => i.dias !== null && i.dias >= 0 && i.dias <= 7).length;
+    resumen.style.display = 'block';
+    resumen.innerHTML = `
+      <div class="cal-resumen-item">
+        <span class="cal-resumen-num">${items.length}</span>
+        <span class="cal-resumen-txt">vencimientos</span>
+      </div>
+      <div class="cal-resumen-item">
+        <span class="cal-resumen-num ${urgentes > 0 ? 'urgente' : ''}">${urgentes}</span>
+        <span class="cal-resumen-txt">urgentes</span>
+      </div>
+      <div class="cal-resumen-item">
+        <span class="cal-resumen-num">${Object.keys(porDia).length}</span>
+        <span class="cal-resumen-txt">días con venc.</span>
+      </div>
+    `;
+  }
+
+  function getBadge(dias: number | null): string {
+    if (dias === null) return '<span class="tl-badge tl-badge-gris">Sin fecha</span>';
+    if (dias < 0)      return '<span class="tl-badge tl-badge-vencido">Vencido</span>';
+    if (dias === 0)    return '<span class="tl-badge tl-badge-hoy">¡Hoy!</span>';
+    if (dias <= 7)     return `<span class="tl-badge tl-badge-urgente">${dias}d</span>`;
+    if (dias <= 30)    return `<span class="tl-badge tl-badge-proximo">${dias}d</span>`;
+    return             `<span class="tl-badge tl-badge-futuro">${dias}d</span>`;
+  }
+</script>

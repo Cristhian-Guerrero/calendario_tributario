@@ -1,0 +1,100 @@
+---
+import '../styles/global.css';
+
+export interface Props {
+  title?: string;
+}
+const { title = 'Calendario Tributario Colombia 2026 | AS Contadores' } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Consulta los vencimientos tributarios de Colombia 2026 por NIT. Decreto 2229 DIAN. AS Contadores & Asesores SAS." />
+    <title>{title}</title>
+
+    <!-- Favicon con ícono AS -->
+    <link rel="icon" type="image/png" href="/favicon-as.png" />
+    <link rel="apple-touch-icon" href="/logo-as-icon.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+
+    <!-- ═══ HEADER ═══ -->
+    <header class="site-header">
+      <div class="site-header__inner">
+
+        <!-- LOGO -->
+        <a href="/" class="site-logo" aria-label="AS Contadores & Asesores SAS - Inicio">
+          <!-- Logo horizontal blanco con fondo transparente — versión negativo -->
+          <img
+            src="/logo-as-header.png"
+            alt="AS Contadores & Asesores SAS"
+            class="site-logo__img"
+          />
+        </a>
+
+        <!-- BADGE HERRAMIENTA -->
+        <div class="site-header__tool">
+          <span class="site-header__tool-label">Calendario Tributario Colombia</span>
+          <span class="site-header__tool-year">2026</span>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- ═══ MAIN — GRID 2 COLUMNAS ═══ -->
+    <main class="site-main">
+      <div class="site-grid">
+
+        <!-- Columna izquierda: contenido principal -->
+        <div class="col-principal">
+          <slot />
+        </div>
+
+        <!-- Columna derecha: calendario (sticky en desktop) -->
+        <div class="col-calendario" id="col-calendario">
+          <div class="cal-placeholder" id="cal-placeholder">
+            <svg viewBox="0 0 48 48" width="44" height="44" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:.25">
+              <rect x="4" y="8" width="40" height="36" rx="6" stroke="#64748b" stroke-width="2.5"/>
+              <line x1="4" y1="18" x2="44" y2="18" stroke="#64748b" stroke-width="2.5"/>
+              <line x1="16" y1="4" x2="16" y2="12" stroke="#64748b" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="32" y1="4" x2="32" y2="12" stroke="#64748b" stroke-width="2.5" stroke-linecap="round"/>
+              <rect x="12" y="24" width="6" height="6" rx="1.5" fill="#94a3b8"/>
+              <rect x="21" y="24" width="6" height="6" rx="1.5" fill="#94a3b8"/>
+              <rect x="30" y="24" width="6" height="6" rx="1.5" fill="#94a3b8"/>
+              <rect x="12" y="34" width="6" height="6" rx="1.5" fill="#94a3b8"/>
+              <rect x="21" y="34" width="6" height="6" rx="1.5" fill="#94a3b8"/>
+            </svg>
+            <p class="cal-placeholder__txt">Ingresa un NIT para ver el calendario interactivo</p>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- ═══ FOOTER ═══ -->
+    <footer class="site-footer">
+      <div class="site-footer__inner">
+
+        <div class="site-footer__marca">
+          <img src="/logo-as-icon.png" alt="AS" class="site-footer__logo-icon" />
+          <span class="site-footer__copy">© 2026 AS Contadores & Asesores SAS</span>
+        </div>
+
+        <span class="site-footer__legal">
+          Basado en Decreto 2229 DIAN · Solo referencia, verifique con su contador
+        </span>
+
+        <span class="site-footer__cg">CG V1.0</span>
+
+      </div>
+    </footer>
+
+  </body>
+</html>

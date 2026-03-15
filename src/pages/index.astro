@@ -1,0 +1,172 @@
+---
+import Layout          from '../layouts/Layout.astro';
+import BuscadorNIT     from '../components/BuscadorNIT.astro';
+import PerfilSelector   from '../components/PerfilSelector.astro';
+import FiltroChips     from '../components/FiltroChips.astro';
+import ProximoVence    from '../components/ProximoVence.astro';
+import TimelineMes     from '../components/TimelineMes.astro';
+import CalendarioMes   from '../components/CalendarioMes.astro';
+---
+
+<Layout title="Calendario Tributario Colombia 2026 | AS Contadores">
+
+  <!-- ① BUSCADOR -->
+  <BuscadorNIT />
+
+  <!-- ② PERFIL -->
+  <div id="paso2" class="oculto">
+    <PerfilSelector />
+  </div>
+
+  <!-- ③ IMPUESTOS -->
+  <div id="paso3" class="oculto">
+    <FiltroChips />
+  </div>
+
+  <!-- ④ DASHBOARD -->
+  <div id="dashboard" class="oculto">
+
+    <!-- Barra NIT -->
+    <div id="nit-info" class="nit-info card">
+      <span class="nit-info__label">NIT</span>
+      <span id="nit-display" class="nit-info__valor"></span>
+      <span class="nit-info__sep">·</span>
+      <span class="nit-info__label">Último dígito</span>
+      <span id="d1-display" class="nit-info__chip"></span>
+      <span class="nit-info__sep">·</span>
+      <span class="nit-info__label">Dos últimos</span>
+      <span id="d2-display" class="nit-info__chip"></span>
+      <button id="btn-nueva-consulta" class="nit-info__reset" type="button">← Nueva consulta</button>
+    </div>
+
+    <!-- ⚠ AVISO INFORMATIVO DE VERIFICACIÓN -->
+    <div class="aviso-verificacion" role="note">
+      <span class="aviso-verificacion__icono" aria-hidden="true">ℹ</span>
+      <div class="aviso-verificacion__texto">
+        <strong>Verifique qué obligaciones aplican a este contribuyente.</strong>
+        Las fechas mostradas corresponden al Decreto 2229 de 2023 de la DIAN.
+        No todos los impuestos aplican a todos los contribuyentes —
+        confirme con el RUT y la situación tributaria específica del cliente.
+        <a
+          href="https://www.dian.gov.co"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="aviso-verificacion__link"
+        >Ver en DIAN →</a>
+      </div>
+      <button
+        class="aviso-verificacion__cerrar"
+        id="btn-cerrar-aviso"
+        type="button"
+        aria-label="Cerrar aviso"
+      >✕</button>
+    </div>
+
+    <!-- Leyenda de tipos -->
+    <div class="leyenda-tipos">
+      <span class="leyenda-tipos__titulo">Convenciones:</span>
+      <span class="leyenda-tipo"><span>💳</span> Solo pago</span>
+      <span class="leyenda-tipo"><span>📄</span> Solo declaración</span>
+      <span class="leyenda-tipo"><span>📋</span> Pago y declaración</span>
+      <span class="leyenda-tipo"><span>📊</span> Reporte de información</span>
+    </div>
+
+    <!-- Próximo vencimiento -->
+    <ProximoVence />
+
+    <!-- Timeline -->
+    <section>
+      <h2 class="seccion__titulo">📋 Calendario de vencimientos</h2>
+      <TimelineMes />
+    </section>
+
+  </div>
+
+</Layout>
+
+<!-- Calendario en columna derecha -->
+<div id="cal-portal">
+  <CalendarioMes />
+</div>
+
+<script>
+  import { calcularVencimientos } from '../utils/calcularVencimientos.js';
+  import { filtrarPorPerfil }     from '../utils/filtrarPorPerfil.js';
+
+  // Montar CalendarioMes en la columna derecha
+  const calPortal     = document.getElementById('cal-portal')!;
+  const colCalendario = document.getElementById('col-calendario')!;
+  const placeholder   = document.getElementById('cal-placeholder');
+  if (calPortal && colCalendario) {
+    while (calPortal.firstChild) colCalendario.appendChild(calPortal.firstChild);
+    calPortal.remove();
+  }
+
+  // Estado
+  let estado = {
+    nit: '', perfil: '', seleccionados: [] as string[], resultado: null as any,
+  };
+
+  const paso2     = document.getElementById('paso2')!;
+  const paso3     = document.getElementById('paso3')!;
+  const dashboard = document.getElementById('dashboard')!;
+  const nitDisp   = document.getElementById('nit-display')!;
+  const d1Disp    = document.getElementById('d1-display')!;
+  const d2Disp    = document.getElementById('d2-display')!;
+  const btnReset  = document.getElementById('btn-nueva-consulta')!;
+  const btnAviso  = document.getElementById('btn-cerrar-aviso');
+  const aviso     = document.querySelector('.aviso-verificacion') as HTMLElement | null;
+
+  const mostrar = (el: HTMLElement) => el.classList.remove('oculto');
+  const ocultar = (el: HTMLElement) => el.classList.add('oculto');
+  const scroll  = (el: HTMLElement) =>
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+
+  // Cerrar aviso
+  btnAviso?.addEventListener('click', () => {
+    if (aviso) aviso.style.display = 'none';
+  });
+
+  // Paso 1
+  document.addEventListener('nit:ingresado', (e: Event) => {
+    const { nit } = (e as CustomEvent).detail;
+    estado.nit       = nit;
+    estado.resultado = calcularVencimientos(nit);
+    nitDisp.textContent = nit;
+    d1Disp.textContent  = estado.resultado.ultimoDigito;
+    d2Disp.textContent  = estado.resultado.dosUltimosDigitos;
+    ocultar(dashboard); mostrar(paso2); ocultar(paso3);
+    scroll(paso2);
+  });
+
+  // Paso 2
+  document.addEventListener('perfil:seleccionado', (e: Event) => {
+    estado.perfil = (e as CustomEvent).detail.perfil;
+    mostrar(paso3); scroll(paso3);
+  });
+
+  // Paso 3
+  document.addEventListener('impuestos:seleccionados', (e: Event) => {
+    estado.seleccionados = (e as CustomEvent).detail.seleccionados;
+    const filtrado = filtrarPorPerfil(estado.resultado, estado.seleccionados);
+    if (!filtrado) return;
+
+    document.dispatchEvent(new CustomEvent('dashboard:actualizado', {
+      detail: filtrado, bubbles: true,
+    }));
+
+    if (placeholder) placeholder.style.display = 'none';
+    if (aviso)       aviso.style.display = 'flex';
+    mostrar(dashboard); scroll(dashboard);
+  });
+
+  // Reset
+  btnReset.addEventListener('click', () => {
+    estado = { nit: '', perfil: '', seleccionados: [], resultado: null };
+    ocultar(paso2); ocultar(paso3); ocultar(dashboard);
+    const input = document.getElementById('nit-input') as HTMLInputElement;
+    input.value = ''; input.focus();
+    if (placeholder) placeholder.style.display = 'flex';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+</script>

@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "titulo": "Impuesto de Renta - Personas Jurídicas",
+    "regla": "1_ultimo_digito",
+    "descripcion": "Declaración de renta para personas jurídicas. Dos cuotas: primera en mayo, segunda (con presentación) en julio.",
+    "ano": 2026
+  },
+  "cuotas": {
+    "cuota_1": {
+      "descripcion": "1ª cuota y presentación (mayo)",
+      "fechas": {
+        "1": "2026-05-12",
+        "2": "2026-05-13",
+        "3": "2026-05-14",
+        "4": "2026-05-15",
+        "5": "2026-05-19",
+        "6": "2026-05-20",
+        "7": "2026-05-21",
+        "8": "2026-05-22",
+        "9": "2026-05-25",
+        "0": "2026-05-26"
+      }
+    },
+    "cuota_2": {
+      "descripcion": "2ª cuota (julio)",
+      "fechas": {
+        "1": "2026-07-09",
+        "2": "2026-07-10",
+        "3": "2026-07-13",
+        "4": "2026-07-14",
+        "5": "2026-07-15",
+        "6": "2026-07-16",
+        "7": "2026-07-17",
+        "8": "2026-07-21",
+        "9": "2026-07-22",
+        "0": "2026-07-23"
+      }
+    }
+  }
+}
