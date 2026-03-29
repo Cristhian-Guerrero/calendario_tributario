@@ -1481,3 +1481,42 @@ footer {
   flex-shrink: 0;
 }
 
+
+/* ── Ocultar hint de calendario en móvil / cuando no es necesario ── */
+.tl-cal-hint { display: none; }
+@media (min-width: 769px) {
+  .tl-cal-hint { display: inline; }
+}
+
+/* ── Separar el hint del chevron ── */
+.tl-grupo-header { gap: .45rem; }
+
+/* ══════════════════════════════════════════════════════════════
+   FIX: fecha inline siempre visible (dentro de tl-item-info)
+   ══════════════════════════════════════════════════════════════ */
+
+/* El item ahora solo necesita 3 columnas: ícono | info | badge */
+.tl-item {
+  grid-template-columns: 22px 1fr auto !important;
+}
+
+/* Fecha dentro del bloque de info — siempre visible */
+.tl-item-fecha-inline {
+  display: block;
+  font-size: .78rem;
+  font-weight: 500;
+  color: var(--texto);
+  margin-top: .25rem;
+}
+
+/* Quitar la clase antigua que se ocultaba en móvil */
+.tl-item-fecha {
+  display: none !important;
+}
+
+/* En móvil la fecha inline también se ve bien */
+@media (max-width: 540px) {
+  .tl-item-fecha-inline {
+    font-size: .73rem;
+  }
+}

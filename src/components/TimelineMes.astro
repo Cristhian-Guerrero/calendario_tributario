@@ -1,64 +1,80 @@
 ---
-// TimelineMes.astro — v4
-// Novedades:
-//   - Ícono por tipo: 💳 pago | 📄 declaración | 📋 pago+declaración | 📊 reporte
-//   - Al hacer clic en mes → emite evento 'timeline:mes-clic' para sincronizar calendario
-//   - Tooltip de tipo en cada item
+// TimelineMes.astro — v5
+// Fix: fecha exacta siempre visible dentro del bloque de info
 // ============================================================
 ---
 
 <div id="timeline-mes" class="timeline" aria-live="polite"></div>
 
 <script>
-  import { agruparPorMes, separarPasadosVigentes, resumenAnual } from '../utils/agruparPorMes.js';
+  import {
+    agruparPorMes,
+    separarPasadosVigentes,
+    resumenAnual,
+  } from "../utils/agruparPorMes.js";
 
-  const el = document.getElementById('timeline-mes')!;
+  const el = document.getElementById("timeline-mes")!;
 
-  document.addEventListener('dashboard:actualizado', (e: Event) => {
+  document.addEventListener("dashboard:actualizado", (e: Event) => {
     const { anuales, periodicos } = (e as CustomEvent).detail;
-    const todos   = [...anuales, ...periodicos];
-    const grupos  = agruparPorMes(todos);
+    const todos = [...anuales, ...periodicos];
+    const grupos = agruparPorMes(todos);
     const { pasados, vigentes } = separarPasadosVigentes(grupos);
     const resumen = resumenAnual(grupos);
-    el.innerHTML  = render(vigentes, pasados, resumen, todos.length);
+    el.innerHTML = render(vigentes, pasados, resumen, todos.length);
     iniciarEventos();
   });
 
-  // ── Íconos por tipo ────────────────────────────────────────
-  const TIPO_CONFIG: Record<string, { icono: string; label: string; clase: string }> = {
-    pago:             { icono: '💳', label: 'Solo pago',              clase: 'tipo-pago'       },
-    declaracion:      { icono: '📄', label: 'Solo declaración',       clase: 'tipo-decl'       },
-    pago_declaracion: { icono: '📋', label: 'Pago y declaración',     clase: 'tipo-pago-decl'  },
-    reporte:          { icono: '📊', label: 'Reporte de información', clase: 'tipo-reporte'    },
+  const TIPO_CONFIG: Record<
+    string,
+    { icono: string; label: string; clase: string }
+  > = {
+    pago: { icono: "💳", label: "Solo pago", clase: "tipo-pago" },
+    declaracion: { icono: "📄", label: "Solo declaración", clase: "tipo-decl" },
+    pago_declaracion: {
+      icono: "📋",
+      label: "Pago y declaración",
+      clase: "tipo-pago-decl",
+    },
+    reporte: {
+      icono: "📊",
+      label: "Reporte de información",
+      clase: "tipo-reporte",
+    },
   };
 
-  // ── RENDER ────────────────────────────────────────────────
-  function render(vigentes: any[], pasados: any[], resumen: any, total: number): string {
+  function render(
+    vigentes: any[],
+    pasados: any[],
+    resumen: any,
+    total: number,
+  ): string {
     if (vigentes.length === 0 && pasados.length === 0)
       return '<p class="tl-vacio">No hay vencimientos para mostrar.</p>';
-
     return `
       ${renderResumen(resumen, total)}
       <div class="tl-grupos">
-        ${vigentes.map((g, i) => renderGrupo(g, i === 0)).join('')}
+        ${vigentes.map((g, i) => renderGrupo(g, i === 0)).join("")}
       </div>
-      ${pasados.length > 0 ? renderSeccionPasados(pasados) : ''}
+      ${pasados.length > 0 ? renderSeccionPasados(pasados) : ""}
     `;
   }
 
   function renderResumen(r: any, total: number): string {
-    if (r.totalVigentes === 0) return '';
+    if (r.totalVigentes === 0) return "";
     const cumplidos = total - r.totalVigentes;
     const pct = total > 0 ? Math.round((cumplidos / total) * 100) : 0;
     return `
       <div class="tl-resumen">
         <div class="tl-chips">
-          ${r.totalUrgentes > 0
-            ? `<span class="tl-chip tl-chip-rojo">${r.totalUrgentes} urgente${r.totalUrgentes>1?'s':''}</span>`
-            : '<span class="tl-chip tl-chip-verde">Sin urgentes</span>'}
+          ${
+            r.totalUrgentes > 0
+              ? `<span class="tl-chip tl-chip-rojo">${r.totalUrgentes} urgente${r.totalUrgentes > 1 ? "s" : ""}</span>`
+              : '<span class="tl-chip tl-chip-verde">Sin urgentes</span>'
+          }
           <span class="tl-chip tl-chip-azul">${r.totalVigentes} pendientes</span>
           <span class="tl-chip tl-chip-gris">${r.mesesConVencimientos} meses</span>
-          ${r.mesMasCargado ? `<span class="tl-chip tl-chip-naranja">Pico: ${r.mesMasCargado} (${r.mesMasCargadoConteo})</span>` : ''}
+          ${r.mesMasCargado ? `<span class="tl-chip tl-chip-naranja">Pico: ${r.mesMasCargado} (${r.mesMasCargadoConteo})</span>` : ""}
         </div>
         <div class="tl-progreso">
           <div class="tl-progreso-barra"><div class="tl-progreso-fill" style="width:${pct}%"></div></div>
@@ -70,14 +86,19 @@
 
   function renderGrupo(g: any, expandido: boolean): string {
     const colores: Record<string, string> = {
-      urgente: 'tl-grupo-rojo', proximo: 'tl-grupo-naranja',
-      futuro: 'tl-grupo-verde', vencido: 'tl-grupo-gris',
+      urgente: "tl-grupo-rojo",
+      proximo: "tl-grupo-naranja",
+      futuro: "tl-grupo-verde",
+      vencido: "tl-grupo-gris",
     };
     const etiquetas: Record<string, string> = {
-      urgente: 'URGENTE', proximo: 'PRÓXIMO', futuro: '', vencido: 'VENCIDO',
+      urgente: "URGENTE",
+      proximo: "PRÓXIMO",
+      futuro: "",
+      vencido: "VENCIDO",
     };
     return `
-      <div class="tl-grupo ${colores[g.estado] ?? ''}" data-clave="${g.clave}">
+      <div class="tl-grupo ${colores[g.estado] ?? ""}" data-clave="${g.clave}">
         <button
           class="tl-grupo-header"
           type="button"
@@ -87,26 +108,31 @@
           title="Clic para ver en el calendario"
         >
           <span class="tl-grupo-mes">${g.label}</span>
-          ${etiquetas[g.estado] ? `<span class="tl-etiqueta tl-etiqueta-${g.estado}">${etiquetas[g.estado]}</span>` : ''}
-          ${g.urgentes > 0 ? `<span class="tl-etiqueta tl-etiqueta-urgente">${g.urgentes} urg.</span>` : ''}
+          ${etiquetas[g.estado] ? `<span class="tl-etiqueta tl-etiqueta-${g.estado}">${etiquetas[g.estado]}</span>` : ""}
+          ${g.urgentes > 0 ? `<span class="tl-etiqueta tl-etiqueta-urgente">${g.urgentes} urg.</span>` : ""}
           <span class="tl-conteo">${g.conteo} venc.</span>
           <span class="tl-cal-hint" aria-hidden="true">📅</span>
-          <span class="tl-chevron">${expandido ? '▾' : '▸'}</span>
+          <span class="tl-chevron">${expandido ? "▾" : "▸"}</span>
         </button>
-        <div class="tl-grupo-items ${expandido ? '' : 'oculto'}">
-          ${g.items.map(renderItem).join('')}
+        <div class="tl-grupo-items ${expandido ? "" : "oculto"}">
+          ${g.items.map(renderItem).join("")}
         </div>
       </div>
     `;
   }
 
+  // ── FIX PRINCIPAL: fecha dentro del bloque info ───────────
+  // Antes: <span class="tl-item-fecha"> estaba FUERA del info-block
+  //        y el CSS la ocultaba en móvil con display:none
+  // Ahora: tl-item-fecha-inline DENTRO de tl-item-info
+  //        siempre visible en desktop Y móvil
   function renderItem(item: any): string {
     const urgente = item.dias !== null && item.dias >= 0 && item.dias <= 7;
-    const esAnual = 'detalle' in item;
-    const tipo    = TIPO_CONFIG[item.tipo] ?? TIPO_CONFIG['pago_declaracion'];
+    const esAnual = "detalle" in item;
+    const tipo = TIPO_CONFIG[item.tipo] ?? TIPO_CONFIG["pago_declaracion"];
 
     return `
-      <div class="tl-item ${urgente ? 'tl-item-urgente' : ''}">
+      <div class="tl-item ${urgente ? "tl-item-urgente" : ""}">
         <span class="tl-tipo-icono" title="${tipo.label}">${tipo.icono}</span>
         <div class="tl-item-info">
           <span class="tl-item-impuesto">${item.impuesto}</span>
@@ -114,26 +140,26 @@
             ${esAnual ? item.detalle : item.periodo}
             <span class="tl-tipo-badge ${tipo.clase}">${tipo.label}</span>
           </span>
+          <span class="tl-item-fecha-inline">${item.fmt}</span>
         </div>
-        <span class="tl-item-fecha">${item.fmt}</span>
         <span class="${getBadgeClase(item.dias)}">${getBadgeLabel(item.dias)}</span>
       </div>
     `;
   }
 
   function getBadgeClase(dias: number | null): string {
-    if (dias === null) return 'tl-badge tl-badge-gris';
-    if (dias < 0)      return 'tl-badge tl-badge-vencido';
-    if (dias === 0)    return 'tl-badge tl-badge-hoy';
-    if (dias <= 7)     return 'tl-badge tl-badge-urgente';
-    if (dias <= 30)    return 'tl-badge tl-badge-proximo';
-    return 'tl-badge tl-badge-futuro';
+    if (dias === null) return "tl-badge tl-badge-gris";
+    if (dias < 0) return "tl-badge tl-badge-vencido";
+    if (dias === 0) return "tl-badge tl-badge-hoy";
+    if (dias <= 7) return "tl-badge tl-badge-urgente";
+    if (dias <= 30) return "tl-badge tl-badge-proximo";
+    return "tl-badge tl-badge-futuro";
   }
 
   function getBadgeLabel(dias: number | null): string {
-    if (dias === null) return 'Sin fecha';
-    if (dias < 0)      return 'Vencido';
-    if (dias === 0)    return '¡Hoy!';
+    if (dias === null) return "Sin fecha";
+    if (dias < 0) return "Vencido";
+    if (dias === 0) return "¡Hoy!";
     return `${dias}d`;
   }
 
@@ -141,48 +167,50 @@
     const total = pasados.reduce((s, g) => s + g.conteo, 0);
     return `
       <button class="tl-toggle-pasados" id="btn-pasados" type="button" aria-expanded="false">
-        ▸ Ver historial — ${total} vencimiento${total > 1 ? 's' : ''} de meses anteriores
+        ▸ Ver historial — ${total} vencimiento${total > 1 ? "s" : ""} de meses anteriores
       </button>
       <div class="tl-grupos" id="pasados-lista" hidden>
-        ${pasados.map(g => renderGrupo(g, false)).join('')}
+        ${pasados.map((g) => renderGrupo(g, false)).join("")}
       </div>
     `;
   }
 
-  // ── Eventos ──────────────────────────────────────────────
   function iniciarEventos() {
-
-    // Expandir/colapsar grupo + sincronizar calendario
-    document.querySelectorAll<HTMLButtonElement>('.tl-grupo-header').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const abierto = btn.getAttribute('aria-expanded') === 'true';
-        btn.setAttribute('aria-expanded', String(!abierto));
-        const panel = btn.nextElementSibling as HTMLElement;
-        panel.classList.toggle('oculto', abierto);
-        btn.querySelector('.tl-chevron')!.textContent = abierto ? '▸' : '▾';
-
-        // Siempre sincronizar el calendario con el mes de este grupo
-        const clave = btn.dataset.clave!; // "2026-04"
-        const [y, m] = clave.split('-').map(Number);
-        document.dispatchEvent(new CustomEvent('timeline:mes-clic', {
-          detail: { anio: y, mes: m - 1 }, // mes 0-indexed
-          bubbles: true,
-        }));
+    document
+      .querySelectorAll<HTMLButtonElement>(".tl-grupo-header")
+      .forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const abierto = btn.getAttribute("aria-expanded") === "true";
+          btn.setAttribute("aria-expanded", String(!abierto));
+          const panel = btn.nextElementSibling as HTMLElement;
+          panel.classList.toggle("oculto", abierto);
+          btn.querySelector(".tl-chevron")!.textContent = abierto ? "▸" : "▾";
+          const clave = btn.dataset.clave!;
+          const [y, m] = clave.split("-").map(Number);
+          document.dispatchEvent(
+            new CustomEvent("timeline:mes-clic", {
+              detail: { anio: y, mes: m - 1 },
+              bubbles: true,
+            }),
+          );
+        });
       });
-    });
 
-    // Toggle historial pasados
-    const btnPasados   = document.getElementById('btn-pasados') as HTMLButtonElement | null;
-    const listaPasados = document.getElementById('pasados-lista') as HTMLElement | null;
+    const btnPasados = document.getElementById(
+      "btn-pasados",
+    ) as HTMLButtonElement | null;
+    const listaPasados = document.getElementById(
+      "pasados-lista",
+    ) as HTMLElement | null;
     if (btnPasados && listaPasados) {
-      btnPasados.addEventListener('click', () => {
+      btnPasados.addEventListener("click", () => {
         const oculto = listaPasados.hidden;
         listaPasados.hidden = !oculto;
-        btnPasados.setAttribute('aria-expanded', String(oculto));
-        const total = listaPasados.querySelectorAll('.tl-item').length;
+        btnPasados.setAttribute("aria-expanded", String(oculto));
+        const total = listaPasados.querySelectorAll(".tl-item").length;
         btnPasados.textContent = oculto
-          ? '▾ Ocultar historial'
-          : `▸ Ver historial — ${total} vencimiento${total > 1 ? 's' : ''} de meses anteriores`;
+          ? "▾ Ocultar historial"
+          : `▸ Ver historial — ${total} vencimiento${total > 1 ? "s" : ""} de meses anteriores`;
       });
     }
   }
