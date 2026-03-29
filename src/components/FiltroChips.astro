@@ -1,5 +1,6 @@
 ---
 // FiltroChips.astro — sin <style>, usa global.css
+// Exógena aparece como 2 chips independientes: GC y PJ/PN
 import { IMPUESTOS_DISPONIBLES } from '../utils/filtrarPorPerfil.js';
 ---
 
@@ -12,7 +13,13 @@ import { IMPUESTOS_DISPONIBLES } from '../utils/filtrarPorPerfil.js';
 
   <div class="filtro__chips" role="group" aria-label="Selección de impuestos">
     {IMPUESTOS_DISPONIBLES.map((imp) => (
-      <button class="chip-impuesto" data-id={imp.id} data-tipo={imp.tipo} type="button" aria-pressed="false">
+      <button
+        class="chip-impuesto"
+        data-id={imp.id}
+        data-tipo={imp.tipo}
+        type="button"
+        aria-pressed="false"
+      >
         <span class="chip-check" aria-hidden="true"></span>
         {imp.label}
         <span class={`chip-tipo chip-tipo--${imp.tipo}`}>{imp.tipo}</span>
@@ -41,7 +48,8 @@ import { IMPUESTOS_DISPONIBLES } from '../utils/filtrarPorPerfil.js';
 
   function actualizarConteo() {
     const n = getSeleccionados().length;
-    conteo.textContent = n === 0 ? '0 seleccionados'
+    conteo.textContent = n === 0
+      ? '0 seleccionados'
       : `${n} impuesto${n > 1 ? 's' : ''} seleccionado${n > 1 ? 's' : ''}`;
     btnVer.disabled = n === 0;
   }
@@ -55,6 +63,7 @@ import { IMPUESTOS_DISPONIBLES } from '../utils/filtrarPorPerfil.js';
     });
   });
 
+  // Precargar sugeridos según perfil — ahora precarga la Exógena correcta
   document.addEventListener('perfil:seleccionado', (e: Event) => {
     const { perfil } = (e as CustomEvent).detail;
     import('/src/utils/filtrarPorPerfil.js').then(({ getImpuestosSugeridos }) => {
