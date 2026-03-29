@@ -1,6 +1,6 @@
 ---
-// FiltroChips.astro — sin <style>, usa global.css
-// Exógena aparece como 2 chips independientes: GC y PJ/PN
+// FiltroChips.astro — v3
+// Filtrado contextual: oculta chips de Exógena que no aplican al perfil
 import { IMPUESTOS_DISPONIBLES } from '../utils/filtrarPorPerfil.js';
 ---
 
@@ -40,6 +40,20 @@ import { IMPUESTOS_DISPONIBLES } from '../utils/filtrarPorPerfil.js';
   const conteo = document.getElementById('filtro-conteo')!;
   const btnVer = document.getElementById('btn-ver-resultados') as HTMLButtonElement;
 
+  // ── Qué Exógena mostrar según perfil ─────────────────────
+  // GC e IF → solo Grandes Contribuyentes
+  // PN y PJ → solo PJ y Personas Naturales
+  const EXOGENA_POR_PERFIL: Record<string, { mostrar: string; ocultar: string }> = {
+    pn: { mostrar: 'exogena_pjpn', ocultar: 'exogena_gc'   },
+    pj: { mostrar: 'exogena_pjpn', ocultar: 'exogena_gc'   },
+    gc: { mostrar: 'exogena_gc',   ocultar: 'exogena_pjpn' },
+    if: { mostrar: 'exogena_gc',   ocultar: 'exogena_pjpn' },
+  };
+
+  function getChip(id: string): HTMLButtonElement | null {
+    return document.querySelector<HTMLButtonElement>(`.chip-impuesto[data-id="${id}"]`);
+  }
+
   function getSeleccionados(): string[] {
     return Array.from(chips)
       .filter(c => c.getAttribute('aria-pressed') === 'true')
@@ -54,6 +68,7 @@ import { IMPUESTOS_DISPONIBLES } from '../utils/filtrarPorPerfil.js';
     btnVer.disabled = n === 0;
   }
 
+  // Toggle individual
   chips.forEach(chip => {
     chip.addEventListener('click', () => {
       const activo = chip.getAttribute('aria-pressed') === 'true';
@@ -63,20 +78,45 @@ import { IMPUESTOS_DISPONIBLES } from '../utils/filtrarPorPerfil.js';
     });
   });
 
-  // Precargar sugeridos según perfil — ahora precarga la Exógena correcta
+  // Perfil seleccionado → precargar sugeridos + filtrado contextual Exógena
   document.addEventListener('perfil:seleccionado', (e: Event) => {
     const { perfil } = (e as CustomEvent).detail;
+
     import('/src/utils/filtrarPorPerfil.js').then(({ getImpuestosSugeridos }) => {
       const sugeridos = getImpuestosSugeridos(perfil);
+
+      // 1. Marcar/desmarcar todos los chips según sugeridos
       chips.forEach(chip => {
         const activo = sugeridos.includes(chip.dataset.id!);
         chip.setAttribute('aria-pressed', String(activo));
         chip.classList.toggle('chip-impuesto--activo', activo);
+        // Asegurarse que todos son visibles primero
+        chip.style.display = '';
       });
+
+      // 2. Filtrado contextual: ocultar el chip de Exógena que NO aplica
+      const regla = EXOGENA_POR_PERFIL[perfil];
+      if (regla) {
+        const chipOcultar = getChip(regla.ocultar);
+        const chipMostrar = getChip(regla.mostrar);
+
+        if (chipOcultar) {
+          chipOcultar.style.display = 'none';
+          // Asegurar que está desmarcado aunque esté oculto
+          chipOcultar.setAttribute('aria-pressed', 'false');
+          chipOcultar.classList.remove('chip-impuesto--activo');
+        }
+
+        if (chipMostrar) {
+          chipMostrar.style.display = '';
+        }
+      }
+
       actualizarConteo();
     });
   });
 
+  // Emitir impuestos seleccionados (solo los visibles y marcados)
   btnVer.addEventListener('click', () => {
     document.dispatchEvent(new CustomEvent('impuestos:seleccionados', {
       detail: { seleccionados: getSeleccionados() },
