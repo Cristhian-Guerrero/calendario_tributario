@@ -39,7 +39,6 @@
         background: #0f4f30;
       }
 
-      /* Fondo degradado */
       body::before {
         content: '';
         position: fixed;
@@ -48,7 +47,6 @@
         z-index: 0;
       }
 
-      /* Círculo decorativo superior derecha */
       body::after {
         content: '';
         position: fixed;
@@ -62,7 +60,6 @@
         pointer-events: none;
       }
 
-      /* Círculo decorativo inferior izquierda */
       .deco-circle {
         position: fixed;
         bottom: -100px;
@@ -75,7 +72,6 @@
         pointer-events: none;
       }
 
-      /* ── Wrapper ── */
       .wrap {
         position: relative;
         z-index: 1;
@@ -87,7 +83,6 @@
         gap: 1rem;
       }
 
-      /* ── Tarjeta ── */
       .card {
         width: 100%;
         background: #ffffff;
@@ -99,7 +94,6 @@
           0 40px 80px rgba(0,0,0,0.2);
       }
 
-      /* ── Logo ── */
       .logo-wrap {
         display: flex;
         justify-content: center;
@@ -113,11 +107,9 @@
         height: 56px;
         width: auto;
         object-fit: contain;
-        /* Si el logo es blanco, lo convierte a verde oscuro para fondo blanco */
         filter: brightness(0) saturate(100%) invert(25%) sepia(60%) saturate(600%) hue-rotate(115deg) brightness(0.75);
       }
 
-      /* ── Encabezado ── */
       .encabezado {
         text-align: center;
         margin-bottom: 2rem;
@@ -161,7 +153,6 @@
         font-weight: 400;
       }
 
-      /* ── Formulario ── */
       .form {
         display: flex;
         flex-direction: column;
@@ -232,7 +223,6 @@
       }
       .btn-ver:hover { color: var(--verde); }
 
-      /* ── Mensajes ── */
       .msg-error {
         font-size: 0.81rem;
         color: #b91c1c;
@@ -265,7 +255,6 @@
         color: #7f1d1d;
       }
 
-      /* ── Botón principal ── */
       .btn-ingresar {
         margin-top: 0.4rem;
         width: 100%;
@@ -300,10 +289,9 @@
 
       .btn-ingresar:active:not(:disabled) { transform: translateY(0) scale(0.99); }
       .btn-ingresar:disabled { cursor: not-allowed; opacity: 0.6; }
-      .btn-ingresar.ok       { background: #16a34a; }
-      .btn-ingresar.bloq     { background: #94a3b8; }
+      .btn-ingresar.ok   { background: #16a34a; }
+      .btn-ingresar.bloq { background: #94a3b8; }
 
-      /* ── Crédito ── */
       .pie {
         font-size: 0.72rem;
         color: rgba(255,255,255,0.4);
@@ -364,8 +352,8 @@
 
           <p id="msg-error"     class="msg-error"></p>
           <p id="msg-bloqueado" class="msg-bloqueado">
-            🔒 Acceso bloqueado por demasiados intentos fallidos.
-            <span>Contacta a AS Contadores & Asesores SAS para recuperar el acceso.</span>
+            🔒 Acceso bloqueado temporalmente.
+            <span>Demasiados intentos fallidos. El acceso se restaurará automáticamente.</span>
           </p>
 
           <button id="btn-ingresar" class="btn-ingresar" type="button">
@@ -381,8 +369,9 @@
     <script>
       // ─── CONFIGURACIÓN ─────────────────────────────────────────
       // ⚠️ Cambia esta clave antes del deploy a producción
-      const CLAVE_CORRECTA = 'AS2026';
-      const MAX_INTENTOS   = 3;
+      const CLAVE_CORRECTA  = 'AS2026';
+      const MAX_INTENTOS    = 3;
+      const MINUTOS_BLOQUEO = 30;
       // ───────────────────────────────────────────────────────────
 
       const inputEl  = document.getElementById('clave-input');
@@ -393,52 +382,68 @@
       const msgError = document.getElementById('msg-error');
       const msgBloq  = document.getElementById('msg-bloqueado');
       let intentos   = 0;
+      let countdownInterval = null;
 
-      // Verificar estado al cargar
+      // ── Verificar estado al cargar ────────────────────────────
       (function init() {
         if (sessionStorage.getItem('ct_autenticado') === '1') {
           window.location.replace('/'); return;
         }
-        if (localStorage.getItem('ct_bloqueado') === '1') {
-          bloquear();
+        const bloqueadoHasta = localStorage.getItem('ct_bloqueado_hasta');
+        if (bloqueadoHasta) {
+          const restante = parseInt(bloqueadoHasta, 10) - Date.now();
+          if (restante > 0) {
+            bloquear(restante);   // Aún en tiempo de bloqueo
+          } else {
+            localStorage.removeItem('ct_bloqueado_hasta'); // Ya expiró
+            inputEl.focus();
+          }
         } else {
           inputEl.focus();
         }
       })();
 
-      // Toggle ver/ocultar contraseña
+      // ── Toggle ver/ocultar contraseña ─────────────────────────
       btnVer.addEventListener('click', () => {
-        const esPass = inputEl.type === 'password';
+        const esPass          = inputEl.type === 'password';
         inputEl.type          = esPass ? 'text'  : 'password';
         iconVer.style.display = esPass ? 'none'  : '';
         iconOc.style.display  = esPass ? ''      : 'none';
         inputEl.focus();
       });
 
+      // ── Enter y click ─────────────────────────────────────────
       inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') verificar(); });
       btnIng.addEventListener('click', verificar);
 
+      // ── Lógica principal ──────────────────────────────────────
       function verificar() {
-        if (localStorage.getItem('ct_bloqueado') === '1') { bloquear(); return; }
+        const bloqueadoHasta = localStorage.getItem('ct_bloqueado_hasta');
+        if (bloqueadoHasta && Date.now() < parseInt(bloqueadoHasta, 10)) return;
+
         const val = inputEl.value.trim();
         if (!val) { mostrarError('Por favor ingresa tu clave de acceso.'); return; }
 
         if (val === CLAVE_CORRECTA) {
+          // ✅ Correcto
           sessionStorage.setItem('ct_autenticado', '1');
           btnIng.textContent = '✓ Acceso concedido...';
           btnIng.classList.add('ok');
           btnIng.disabled  = true;
           inputEl.disabled = true;
           setTimeout(() => window.location.replace('/'), 700);
+
         } else {
+          // ❌ Incorrecto
           intentos++;
           inputEl.value = '';
           inputEl.classList.add('shake');
           setTimeout(() => inputEl.classList.remove('shake'), 450);
 
           if (intentos >= MAX_INTENTOS) {
-            localStorage.setItem('ct_bloqueado', '1');
-            bloquear();
+            const hasta = Date.now() + MINUTOS_BLOQUEO * 60 * 1000;
+            localStorage.setItem('ct_bloqueado_hasta', hasta.toString());
+            bloquear(MINUTOS_BLOQUEO * 60 * 1000);
           } else {
             const r = MAX_INTENTOS - intentos;
             mostrarError(r === 1
@@ -456,13 +461,47 @@
         msgBloq.style.display  = 'none';
       }
 
-      function bloquear() {
+      function bloquear(restanteMs) {
         msgError.style.display = 'none';
         msgBloq.style.display  = 'block';
         inputEl.disabled       = true;
         btnIng.disabled        = true;
-        btnIng.textContent     = 'Acceso bloqueado';
         btnIng.classList.add('bloq');
+
+        // Mostrar countdown en el botón
+        function actualizarTexto(ms) {
+          const min = Math.floor(ms / 60000);
+          const seg = Math.floor((ms % 60000) / 1000);
+          const mm  = String(min).padStart(2, '0');
+          const ss  = String(seg).padStart(2, '0');
+          btnIng.textContent = `Bloqueado — espera ${mm}:${ss}`;
+        }
+
+        actualizarTexto(restanteMs);
+
+        if (countdownInterval) clearInterval(countdownInterval);
+
+        countdownInterval = setInterval(() => {
+          const hasta    = localStorage.getItem('ct_bloqueado_hasta');
+          if (!hasta) { clearInterval(countdownInterval); return; }
+
+          const restante = parseInt(hasta, 10) - Date.now();
+
+          if (restante <= 0) {
+            // ✅ Tiempo cumplido — desbloquear
+            clearInterval(countdownInterval);
+            localStorage.removeItem('ct_bloqueado_hasta');
+            intentos               = 0;
+            inputEl.disabled       = false;
+            btnIng.disabled        = false;
+            btnIng.textContent     = 'Ingresar al calendario';
+            btnIng.classList.remove('bloq');
+            msgBloq.style.display  = 'none';
+            inputEl.focus();
+          } else {
+            actualizarTexto(restante);
+          }
+        }, 1000);
       }
     </script>
   </body>
