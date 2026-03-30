@@ -2,7 +2,8 @@
   "meta": {
     "titulo": "Festivos Colombia 2026",
     "fuente": "Calendario Tributario 2026 - Decreto 2229",
-    "ano": 2026
+    "ano": 2026,
+    "nota": "Incluye día cívico 17 de abril decretado por el Presidente"
   },
   "festivos": [
     "2026-01-01",
@@ -10,6 +11,7 @@
     "2026-03-23",
     "2026-04-02",
     "2026-04-03",
+    "2026-04-17",
     "2026-05-01",
     "2026-05-18",
     "2026-06-08",

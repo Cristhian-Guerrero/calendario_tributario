@@ -1,23 +1,24 @@
 // ============================================================
 // MOTOR DE CÁLCULO DE VENCIMIENTOS TRIBUTARIOS - COLOMBIA 2026
 // ============================================================
-// Campo 'tipo' agregado a cada item:
-//   'pago'              → Solo pago de cuota (sin presentar declaración)
-//   'declaracion'       → Solo presentación de declaración
-//   'pago_declaracion'  → Pago + presentación en la misma fecha
-//   'reporte'           → Reporte de información (sin pago)
+// Campo 'tipo' en cada item:
+//   'pago'              → Solo pago de cuota
+//   'declaracion'       → Solo presentación
+//   'pago_declaracion'  → Pago + presentación
+//   'reporte'           → Reporte de información
 // ============================================================
 
-import rentaPN      from '../data/impuestos/renta_personas_naturales.json';
-import rentaPJ      from '../data/impuestos/renta_personas_juridicas.json';
-import rentaGC      from '../data/impuestos/renta_grandes_contribuyentes.json';
-import sobretasa    from '../data/impuestos/sobretasa_inst_financieras.json';
-import ivaBimestral from '../data/impuestos/iva_bimestral.json';
+import rentaPN         from '../data/impuestos/renta_personas_naturales.json';
+import rentaPJ         from '../data/impuestos/renta_personas_juridicas.json';
+import rentaGC         from '../data/impuestos/renta_grandes_contribuyentes.json';
+import sobretasa       from '../data/impuestos/sobretasa_inst_financieras.json';
+import ivaAnual        from '../data/impuestos/iva_anual.json';
+import ivaBimestral    from '../data/impuestos/iva_bimestral.json';
 import ivaCuatrimestral from '../data/impuestos/iva_cuatrimestral.json';
-import retencion    from '../data/impuestos/retencion_fuente_mensual.json';
-import simple       from '../data/impuestos/simple_anual_anticipos.json';
-import patrimonio   from '../data/impuestos/impuesto_patrimonio.json';
-import exogena      from '../data/impuestos/informacion_exogena_2025.json';
+import retencion       from '../data/impuestos/retencion_fuente_mensual.json';
+import simple          from '../data/impuestos/simple_anual_anticipos.json';
+import patrimonio      from '../data/impuestos/impuesto_patrimonio.json';
+import exogena         from '../data/impuestos/informacion_exogena_2025.json';
 
 // ── Utilidades NIT ───────────────────────────────────────────
 export function getUltimoDigito(nit) {
@@ -50,10 +51,9 @@ export function calcularVencimientos(nit) {
 
   const d1 = getUltimoDigito(nitLimpio);
   const d2 = getDosUltimosDigitos(nitLimpio);
-  const anuales   = [];
+  const anuales    = [];
   const periodicos = [];
 
-  // Helper interno
   const anual = (id, impuesto, detalle, fecha, tipo) =>
     anuales.push({ id, impuesto, detalle, fecha, tipo,
       fmt: formatearFecha(fecha), dias: diasParaVencer(fecha) });
@@ -64,19 +64,22 @@ export function calcularVencimientos(nit) {
 
   // ── ANUALES ─────────────────────────────────────────────────
 
-  // Renta PN — declaración + pago en una sola fecha
+  // IVA Anual (2 dígitos agrupados) — febrero 2026
+  anual('iva_anual', 'IVA Anual',
+    'Declaración anual',
+    getIvaAnualFecha(d2), 'pago_declaracion');
+
+  // Renta PN (2 dígitos)
   anual('renta_pn', 'Renta Personas Naturales', 'Fecha límite',
     rentaPN.fechas[d2], 'pago_declaracion');
 
-  // Renta PJ cuota 1 — pago + presentación (mayo)
+  // Renta PJ (1 dígito, 2 cuotas)
   anual('renta_pj_cuota1', 'Renta Personas Jurídicas', '1ª cuota y presentación (mayo)',
     rentaPJ.cuotas.cuota_1.fechas[d1], 'pago_declaracion');
-
-  // Renta PJ cuota 2 — solo pago (julio)
   anual('renta_pj_cuota2', 'Renta Personas Jurídicas', '2ª cuota (julio)',
     rentaPJ.cuotas.cuota_2.fechas[d1], 'pago');
 
-  // Renta GC: cuota 1 solo pago, cuota 2 pago+declaración, cuota 3 solo pago
+  // Renta GC (1 dígito, 3 cuotas)
   const tiposGC = ['pago', 'pago_declaracion', 'pago'];
   ['cuota_1', 'cuota_2', 'cuota_3'].forEach((cuota, i) => {
     anual(`renta_gc_${cuota}`, 'Renta Grandes Contribuyentes',
@@ -84,38 +87,34 @@ export function calcularVencimientos(nit) {
       rentaGC.cuotas[cuota].fechas[d1], tiposGC[i]);
   });
 
-  // Sobretasa: cuota 1 pago+declaración, cuota 2 solo pago
+  // Sobretasa IF (1 dígito, 2 cuotas)
   anual('sobretasa_cuota_1', 'Sobretasa Inst. Financieras',
     sobretasa.cuotas.cuota_1.descripcion,
     sobretasa.cuotas.cuota_1.fechas[d1], 'pago_declaracion');
-
   anual('sobretasa_cuota_2', 'Sobretasa Inst. Financieras',
     sobretasa.cuotas.cuota_2.descripcion,
     sobretasa.cuotas.cuota_2.fechas[d1], 'pago');
 
-  // SIMPLE anual — declaración + pago
+  // SIMPLE Anual (2 dígitos agrupados)
   anual('simple_anual', 'SIMPLE - Declaración Anual', 'Fecha límite',
     getSimpleAnualFecha(d2), 'pago_declaracion');
 
-  // Patrimonio: cuota 1 pago+declaración, cuota 2 solo pago
+  // Patrimonio (1 dígito, 2 cuotas)
   anual('patrimonio_cuota1', 'Impuesto al Patrimonio',
     patrimonio.cuotas.cuota_1.descripcion,
     patrimonio.cuotas.cuota_1.fechas[d1], 'pago_declaracion');
-
   anual('patrimonio_cuota2', 'Impuesto al Patrimonio',
     patrimonio.cuotas.cuota_2.descripcion,
     patrimonio.cuotas.cuota_2.fecha_unica, 'pago');
 
-  // Exógena — solo reporte, sin pago
+  // Exógena (reporte)
   anual('exogena_gc', 'Información Exógena 2025', 'Grandes Contribuyentes',
     exogena.grandes_contribuyentes.fechas[d1], 'reporte');
-
   anual('exogena_pjpn', 'Información Exógena 2025', 'Personas Jurídicas y Naturales',
     getExogenaRangoFecha(d2), 'reporte');
 
   // ── PERIÓDICOS ───────────────────────────────────────────────
 
-  // IVA — pago + declaración en cada período
   ivaBimestral.periodos.forEach(p => {
     periodico(`iva_bimestral_${p.periodo.replace(/\s/g,'_')}`,
       'IVA Bimestral', p.periodo, p.mes_vencimiento,
@@ -128,14 +127,12 @@ export function calcularVencimientos(nit) {
       p.fechas[d1], 'pago_declaracion');
   });
 
-  // Retención — pago + declaración mensual
   retencion.meses.forEach(m => {
     periodico(`retencion_${m.mes_retencion}`,
       'Retención en la Fuente', m.mes_retencion, m.mes_vencimiento,
       m.fechas[d1], 'pago_declaracion');
   });
 
-  // Anticipos SIMPLE — solo pago
   simple.anticipos.periodos.forEach(p => {
     periodico(`simple_anticipo_${p.periodo.replace(/\s/g,'_')}`,
       'Anticipo SIMPLE', p.periodo, p.mes_vencimiento,
@@ -156,6 +153,18 @@ export function calcularVencimientos(nit) {
 }
 
 // ── Helpers internos ─────────────────────────────────────────
+
+// IVA Anual — misma lógica de agrupación que SIMPLE
+function getIvaAnualFecha(d2) {
+  const n = parseInt(d2, 10);
+  const f = ivaAnual.fechas;
+  if (n <= 2) return f['1-2'];
+  if (n <= 4) return f['3-4'];
+  if (n <= 6) return f['5-6'];
+  if (n <= 8) return f['7-8'];
+  return f['9-0'];
+}
+
 function getSimpleAnualFecha(d2) {
   const n = parseInt(d2, 10);
   const f = simple.simple_anual.fechas;

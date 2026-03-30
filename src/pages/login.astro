@@ -1,0 +1,469 @@
+---
+// src/pages/login.astro
+// NOTA TÉCNICA: Esta página NO usa Layout.astro (es previa al acceso).
+// El CSS va inline aquí como excepción justificada — no aplica la regla
+// de global.css porque no hay innerHTML dinámico en esta página.
+---
+
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Acceso — Calendario Tributario 2026</title>
+    <link rel="icon" type="image/png" href="/favicon-as.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --verde:       #1a7a4a;
+        --verde-mid:   #2d9e63;
+        --verde-light: #e8f5ee;
+        --rojo:        #dc2626;
+        --gris-borde:  #e2e8f0;
+        --gris-texto:  #64748b;
+        --texto:       #0f172a;
+      }
+
+      body {
+        font-family: 'DM Sans', sans-serif;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        position: relative;
+        overflow: hidden;
+        background: #0f4f30;
+      }
+
+      /* Fondo degradado */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(145deg, #0f4f30 0%, #1a7a4a 45%, #0d3d25 100%);
+        z-index: 0;
+      }
+
+      /* Círculo decorativo superior derecha */
+      body::after {
+        content: '';
+        position: fixed;
+        top: -120px;
+        right: -120px;
+        width: 480px;
+        height: 480px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(45,158,99,0.25) 0%, transparent 70%);
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      /* Círculo decorativo inferior izquierda */
+      .deco-circle {
+        position: fixed;
+        bottom: -100px;
+        left: -100px;
+        width: 380px;
+        height: 380px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(26,122,74,0.2) 0%, transparent 70%);
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      /* ── Wrapper ── */
+      .wrap {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 390px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      /* ── Tarjeta ── */
+      .card {
+        width: 100%;
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 2.5rem 2.25rem 2.25rem;
+        box-shadow:
+          0 2px 4px rgba(0,0,0,0.08),
+          0 12px 24px rgba(0,0,0,0.15),
+          0 40px 80px rgba(0,0,0,0.2);
+      }
+
+      /* ── Logo ── */
+      .logo-wrap {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1.75rem;
+        border-bottom: 1px solid var(--gris-borde);
+      }
+
+      .logo-img {
+        height: 56px;
+        width: auto;
+        object-fit: contain;
+        /* Si el logo es blanco, lo convierte a verde oscuro para fondo blanco */
+        filter: brightness(0) saturate(100%) invert(25%) sepia(60%) saturate(600%) hue-rotate(115deg) brightness(0.75);
+      }
+
+      /* ── Encabezado ── */
+      .encabezado {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: var(--verde-light);
+        color: var(--verde);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 0.28rem 0.8rem;
+        border-radius: 20px;
+        margin-bottom: 0.9rem;
+      }
+
+      .badge::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--verde);
+        flex-shrink: 0;
+      }
+
+      .titulo {
+        font-size: 1.45rem;
+        font-weight: 700;
+        color: var(--texto);
+        line-height: 1.25;
+        margin-bottom: 0.4rem;
+      }
+
+      .subtitulo {
+        font-size: 0.8rem;
+        color: var(--gris-texto);
+        font-weight: 400;
+      }
+
+      /* ── Formulario ── */
+      .form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+      }
+
+      .label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--texto);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .input-wrap {
+        position: relative;
+      }
+
+      .input {
+        width: 100%;
+        padding: 0.82rem 2.8rem 0.82rem 1rem;
+        border: 1.5px solid var(--gris-borde);
+        border-radius: 10px;
+        font-size: 1rem;
+        font-family: 'DM Sans', sans-serif;
+        color: var(--texto);
+        background: #f8fafc;
+        transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        outline: none;
+      }
+
+      .input::placeholder { color: #b0bec5; }
+
+      .input:focus {
+        border-color: var(--verde);
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(26,122,74,0.1);
+      }
+
+      .input.shake {
+        animation: shake 0.4s ease;
+        border-color: var(--rojo) !important;
+        box-shadow: 0 0 0 3px rgba(220,38,38,0.1) !important;
+      }
+
+      @keyframes shake {
+        0%,100% { transform: translateX(0); }
+        20%      { transform: translateX(-7px); }
+        40%      { transform: translateX(7px); }
+        60%      { transform: translateX(-4px); }
+        80%      { transform: translateX(4px); }
+      }
+
+      .btn-ver {
+        position: absolute;
+        right: 0.8rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #b0bec5;
+        padding: 0.2rem;
+        display: flex;
+        align-items: center;
+        transition: color 0.2s;
+        line-height: 0;
+      }
+      .btn-ver:hover { color: var(--verde); }
+
+      /* ── Mensajes ── */
+      .msg-error {
+        font-size: 0.81rem;
+        color: #b91c1c;
+        font-weight: 500;
+        display: none;
+        padding: 0.55rem 0.85rem;
+        background: #fef2f2;
+        border-radius: 8px;
+        border: 1px solid #fecaca;
+        line-height: 1.4;
+      }
+
+      .msg-bloqueado {
+        font-size: 0.82rem;
+        color: #991b1b;
+        font-weight: 600;
+        display: none;
+        padding: 0.75rem 0.85rem;
+        background: #fef2f2;
+        border-radius: 8px;
+        border: 1px solid #fecaca;
+        line-height: 1.5;
+      }
+
+      .msg-bloqueado span {
+        display: block;
+        font-weight: 400;
+        margin-top: 0.2rem;
+        font-size: 0.78rem;
+        color: #7f1d1d;
+      }
+
+      /* ── Botón principal ── */
+      .btn-ingresar {
+        margin-top: 0.4rem;
+        width: 100%;
+        padding: 0.9rem;
+        background: var(--verde);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        font-family: 'DM Sans', sans-serif;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+        letter-spacing: 0.01em;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn-ingresar::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 100%);
+        pointer-events: none;
+      }
+
+      .btn-ingresar:hover:not(:disabled) {
+        background: var(--verde-mid);
+        box-shadow: 0 6px 20px rgba(26,122,74,0.4);
+        transform: translateY(-1px);
+      }
+
+      .btn-ingresar:active:not(:disabled) { transform: translateY(0) scale(0.99); }
+      .btn-ingresar:disabled { cursor: not-allowed; opacity: 0.6; }
+      .btn-ingresar.ok       { background: #16a34a; }
+      .btn-ingresar.bloq     { background: #94a3b8; }
+
+      /* ── Crédito ── */
+      .pie {
+        font-size: 0.72rem;
+        color: rgba(255,255,255,0.4);
+        text-align: center;
+        letter-spacing: 0.02em;
+      }
+
+      @media (max-width: 440px) {
+        .card { padding: 2rem 1.5rem 1.75rem; }
+        .titulo { font-size: 1.3rem; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="deco-circle"></div>
+
+    <div class="wrap">
+      <div class="card">
+
+        <!-- Logo -->
+        <div class="logo-wrap">
+          <img src="/logo-as-header.png" alt="AS Contadores & Asesores SAS" class="logo-img" />
+        </div>
+
+        <!-- Encabezado -->
+        <div class="encabezado">
+          <div class="badge">Acceso exclusivo</div>
+          <h1 class="titulo">Calendario Tributario<br/>Colombia 2026</h1>
+          <p class="subtitulo">Decreto 2229 · DIAN</p>
+        </div>
+
+        <!-- Formulario -->
+        <div class="form">
+          <label class="label" for="clave-input">Clave de acceso</label>
+
+          <div class="input-wrap">
+            <input
+              id="clave-input"
+              type="password"
+              class="input"
+              placeholder="Ingresa tu clave"
+              autocomplete="off"
+              maxlength="30"
+            />
+            <button id="btn-ver" class="btn-ver" type="button" aria-label="Mostrar contraseña">
+              <svg id="icon-ver" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg id="icon-ocultar" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
+
+          <p id="msg-error"     class="msg-error"></p>
+          <p id="msg-bloqueado" class="msg-bloqueado">
+            🔒 Acceso bloqueado por demasiados intentos fallidos.
+            <span>Contacta a AS Contadores & Asesores SAS para recuperar el acceso.</span>
+          </p>
+
+          <button id="btn-ingresar" class="btn-ingresar" type="button">
+            Ingresar al calendario
+          </button>
+        </div>
+
+      </div>
+
+      <p class="pie">© 2026 AS Contadores & Asesores SAS · CG V1.0</p>
+    </div>
+
+    <script>
+      // ─── CONFIGURACIÓN ─────────────────────────────────────────
+      // ⚠️ Cambia esta clave antes del deploy a producción
+      const CLAVE_CORRECTA = 'AS2026';
+      const MAX_INTENTOS   = 3;
+      // ───────────────────────────────────────────────────────────
+
+      const inputEl  = document.getElementById('clave-input');
+      const btnIng   = document.getElementById('btn-ingresar');
+      const btnVer   = document.getElementById('btn-ver');
+      const iconVer  = document.getElementById('icon-ver');
+      const iconOc   = document.getElementById('icon-ocultar');
+      const msgError = document.getElementById('msg-error');
+      const msgBloq  = document.getElementById('msg-bloqueado');
+      let intentos   = 0;
+
+      // Verificar estado al cargar
+      (function init() {
+        if (sessionStorage.getItem('ct_autenticado') === '1') {
+          window.location.replace('/'); return;
+        }
+        if (localStorage.getItem('ct_bloqueado') === '1') {
+          bloquear();
+        } else {
+          inputEl.focus();
+        }
+      })();
+
+      // Toggle ver/ocultar contraseña
+      btnVer.addEventListener('click', () => {
+        const esPass = inputEl.type === 'password';
+        inputEl.type          = esPass ? 'text'  : 'password';
+        iconVer.style.display = esPass ? 'none'  : '';
+        iconOc.style.display  = esPass ? ''      : 'none';
+        inputEl.focus();
+      });
+
+      inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') verificar(); });
+      btnIng.addEventListener('click', verificar);
+
+      function verificar() {
+        if (localStorage.getItem('ct_bloqueado') === '1') { bloquear(); return; }
+        const val = inputEl.value.trim();
+        if (!val) { mostrarError('Por favor ingresa tu clave de acceso.'); return; }
+
+        if (val === CLAVE_CORRECTA) {
+          sessionStorage.setItem('ct_autenticado', '1');
+          btnIng.textContent = '✓ Acceso concedido...';
+          btnIng.classList.add('ok');
+          btnIng.disabled  = true;
+          inputEl.disabled = true;
+          setTimeout(() => window.location.replace('/'), 700);
+        } else {
+          intentos++;
+          inputEl.value = '';
+          inputEl.classList.add('shake');
+          setTimeout(() => inputEl.classList.remove('shake'), 450);
+
+          if (intentos >= MAX_INTENTOS) {
+            localStorage.setItem('ct_bloqueado', '1');
+            bloquear();
+          } else {
+            const r = MAX_INTENTOS - intentos;
+            mostrarError(r === 1
+              ? '⚠️ Clave incorrecta. Último intento antes del bloqueo.'
+              : `Clave incorrecta. Te quedan ${r} intentos.`
+            );
+            inputEl.focus();
+          }
+        }
+      }
+
+      function mostrarError(msg) {
+        msgError.textContent   = msg;
+        msgError.style.display = 'block';
+        msgBloq.style.display  = 'none';
+      }
+
+      function bloquear() {
+        msgError.style.display = 'none';
+        msgBloq.style.display  = 'block';
+        inputEl.disabled       = true;
+        btnIng.disabled        = true;
+        btnIng.textContent     = 'Acceso bloqueado';
+        btnIng.classList.add('bloq');
+      }
+    </script>
+  </body>
+</html>
